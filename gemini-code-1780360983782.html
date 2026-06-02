@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BD Live TV | Live Streaming</title>
+    <!-- Video.js and Tailwind CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/video.js/8.10.0/video-js.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/video.js/8.10.0/video.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body {
+            background: radial-gradient(circle at top right, #1f2937 0%, #111827 45%, #0b1120 100%);
+            color: #e5e7eb;
+            user-select: none; /* Prohibit text selection */
+        }
+        .category-card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: 0 25px 40px -20px rgba(0, 0, 0, 0.75);
+        }
+        .category-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            max-height: 440px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+        }
+        .video-container .video-js {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+        }
+        /* Anti-Source Code measures */
+        @media print { body { display:none; } }
+    </style>
+</head>
+<body oncontextmenu="return false;"> <!-- Disables Right Click -->
+
+    <!-- Donation Popup -->
+    <div id="donation-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+        <div class="bg-gray-800 border border-blue-500 rounded-xl p-6 max-w-sm w-full text-center shadow-2xl">
+            <h2 class="text-2xl font-bold text-blue-400 mb-4">Support BD Live TV</h2>
+            <p class="text-gray-300 mb-6">If you enjoy our service, consider a small donation to keep the servers alive.</p>
+            <div class="bg-gray-900 p-3 rounded-lg mb-4 flex justify-between items-center border border-gray-700">
+                <span class="font-mono text-lg" id="bkash-num">01603352623</span>
+                <button onclick="copyNumber()" class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm transition">Copy</button>
+            </div>
+            <p class="text-xs text-gray-500 mb-6">bKash Personal</p>
+            <button onclick="closeDonation()" class="w-full bg-gray-700 hover:bg-gray-600 py-2 rounded-lg font-semibold">Maybe Later</button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="bg-gray-900/95 backdrop-blur-sm p-4 border-b border-gray-700 sticky top-0 z-40">
+        <div class="container mx-auto flex items-center justify-between">
+            <h1 class="text-2xl font-bold tracking-tight text-blue-500">BD Live TV</h1>
+            <div class="flex items-center space-x-6">
+                <span class="hidden md:inline text-green-400 text-sm">● Live Streaming Active</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Video Player Section (Visible when channel selected) -->
+    <section id="player-section" class="hidden bg-black py-4">
+        <div class="container mx-auto max-w-4xl px-4">
+            <div class="flex justify-between items-center mb-2">
+                <h3 id="current-channel-name" class="text-lg font-semibold text-blue-400"></h3>
+                <button onclick="closePlayer()" class="text-gray-400 hover:text-white">✕ Close Player</button>
+            </div>
+            <div class="video-container rounded-lg overflow-hidden border border-gray-700">
+                <video id="live-player" class="video-js vjs-big-play-centered vjs-theme-default" controls preload="auto" width="640">
+                    <p class="vjs-no-js">Enable JS to stream.</p>
+                </video>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container mx-auto py-8 px-4 min-h-screen">
+        <div class="mb-8">
+            <input id="search-bar" type="text" placeholder="Search for channels..." 
+                   class="w-full bg-gray-800 border border-gray-700 rounded-xl px-5 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- News Category -->
+            <div class="bg-gray-800 p-5 rounded-xl category-card">
+                <h3 class="text-blue-400 font-bold text-lg mb-4 flex items-center">
+                    <span class="mr-2">📰</span> News Channels
+                </h3>
+                <div class="space-y-2 category-content pr-2">
+                    <button onclick="playStream('Somoy TV', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1702/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition group">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ST</div>
+                        <span>Somoy TV</span>
+                    </button>
+                    <button onclick="playStream('Jamuna TV', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1701/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">JT</div>
+                        <span>Jamuna TV</span>
+                    </button>
+                    <button onclick="playStream('DBC News HD', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1728/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">DN</div>
+                        <span>DBC News HD</span>
+                    </button>
+                    <button onclick="playStream('Independent TV', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1704/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">IT</div>
+                        <span>Independent TV</span>
+                    </button>
+                    <button onclick="playStream('Ekattor HD', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1705/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">EH</div>
+                        <span>Ekattor HD</span>
+                    </button>
+                    <button onclick="playStream('Channel 24 HD', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1703/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">C2</div>
+                        <span>Channel 24 HD</span>
+                    </button>
+                    <button onclick="playStream('News 24 HD', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1708/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">N2</div>
+                        <span>News 24 HD</span>
+                    </button>
+                    <button onclick="playStream('ATN News', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1706/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">AN</div>
+                        <span>ATN News</span>
+                    </button>
+                    <button onclick="playStream('Al Jazeera', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1721/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">AJ</div>
+                        <span>Al Jazeera</span>
+                    </button>
+                    <button onclick="playStream('Star News', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1710/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SN</div>
+                        <span>Star News</span>
+                    </button>
+                    <button onclick="playStream('BTV', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1709/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">BT</div>
+                        <span>BTV</span>
+                    </button>
+                    <button onclick="playStream('ARY News', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1724/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">AN</div>
+                        <span>ARY News</span>
+                    </button>
+                    <button onclick="playStream('CNN VIP', 'https://server.itcnbd.live/stream/cnn.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">CN</div>
+                        <span>CNN VIP</span>
+                    </button>
+                    <button onclick="playStream('Ekattor TV', 'https://server.itcnbd.live/stream/ekattor_tv.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ET</div>
+                        <span>Ekattor TV</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Entertainment -->
+            <div class="bg-gray-800 p-5 rounded-xl category-card">
+                <h3 class="text-purple-400 font-bold text-lg mb-4 flex items-center">
+                    <span class="mr-2">🎭</span> Entertainment
+                </h3>
+                <div class="space-y-2 category-content pr-2">
+                    <button onclick="playStream('Deepto TV HD', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1711/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">DT</div>
+                        <span>Deepto TV HD</span>
+                    </button>
+                    <button onclick="playStream('SATV HD', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1720/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SA</div>
+                        <span>SATV HD</span>
+                    </button>
+                    <button onclick="playStream('Channel 9 HD', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1729/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">C9</div>
+                        <span>Channel 9 HD</span>
+                    </button>
+                    <button onclick="playStream('Ekhon TV', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1713/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ET</div>
+                        <span>Ekhon TV</span>
+                    </button>
+                    <button onclick="playStream('SRK TV', 'https://srknowapp.ncare.live/srktvhlswodrm/srktv.stream/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SR</div>
+                        <span>SRK TV</span>
+                    </button>
+                    <button onclick="playStream('Channel I HD', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1723/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">CI</div>
+                        <span>Channel I HD</span>
+                    </button>
+                    <button onclick="playStream('ATN Bangla', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1722/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">AB</div>
+                        <span>ATN Bangla</span>
+                    </button>
+                    <button onclick="playStream('Bangla Vision', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1715/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">BV</div>
+                        <span>Bangla Vision</span>
+                    </button>
+                    <button onclick="playStream('NTV', 'https://owrcovcrpy.gpcdn.net/bpk-tv/1716/output/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">NT</div>
+                        <span>NTV</span>
+                    </button>
+                    <button onclick="playStream('Zee Bangla VIP', 'https://server.itcnbd.live/stream/zee_bangla.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ZB</div>
+                        <span>Zee Bangla VIP</span>
+                    </button>
+                    <button onclick="playStream('Zee Anmol', 'https://server.itcnbd.live/stream/zee_anmol.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ZA</div>
+                        <span>Zee Anmol</span>
+                    </button>
+                    <button onclick="playStream('Zing', 'https://server.itcnbd.live/stream/zing_sd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ZI</div>
+                        <span>Zing</span>
+                    </button>
+                    <button onclick="playStream('Hum TV', 'https://server.itcnbd.live/stream/hum_tv.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">HT</div>
+                        <span>Hum TV</span>
+                    </button>
+                    <button onclick="playStream('Hum Masala', 'https://server.itcnbd.live/stream/hum_masala.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">HM</div>
+                        <span>Hum Masala</span>
+                    </button>
+                    <button onclick="playStream('Hum Sitarey', 'https://server.itcnbd.live/stream/hum_sitaray.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">HS</div>
+                        <span>Hum Sitarey</span>
+                    </button>
+                    <button onclick="playStream('Sony Aat VIP', 'https://server.itcnbd.live/stream/sonyaath.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SA</div>
+                        <span>Sony Aat VIP</span>
+                    </button>
+                    <button onclick="playStream('SONY ENTERTAINMENT TELEVISION HD VIP', 'https://server.itcnbd.live/stream/sonyentertainmnt_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SE</div>
+                        <span>SONY ENTERTAINMENT TELEVISION HD VIP</span>
+                    </button>
+                    <button onclick="playStream('SONY ENTERTAINMENT TELEVISION', 'https://server.itcnbd.live/stream/sony_entertainment.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SE</div>
+                        <span>SONY ENTERTAINMENT TELEVISION</span>
+                    </button>
+                    <button onclick="playStream('B4U Music VIP', 'https://server.itcnbd.live/stream/b4u_music.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">B4</div>
+                        <span>B4U Music VIP</span>
+                    </button>
+                    <button onclick="playStream('SONY SAB HD VIP', 'https://server.itcnbd.live/stream/sonysab_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>SONY SAB HD VIP</span>
+                    </button>
+                    <button onclick="playStream('Zee TV HD', 'https://server.itcnbd.live/stream/zee_tv_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ZT</div>
+                        <span>Zee TV HD</span>
+                    </button>
+                    <button onclick="playStream('&TV HD', 'https://server.itcnbd.live/stream/and_tv_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">&T</div>
+                        <span>&TV HD</span>
+                    </button>
+                    <button onclick="playStream('& Pictures HD', 'https://server.itcnbd.live/stream/andpicture_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">&P</div>
+                        <span>& Pictures HD</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Movies Category -->
+            <div class="bg-gray-800 p-5 rounded-xl category-card">
+                <h3 class="text-red-400 font-bold text-lg mb-4 flex items-center">
+                    <span class="mr-2">🎬</span> Movies
+                </h3>
+                <div class="space-y-2 category-content pr-2">
+                    <button onclick="playStream('Originals', 'https://nomawnoijl.gpcdn.net/akash/originals/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">OR</div>
+                        <span>Originals</span>
+                    </button>
+                    <button onclick="playStream('Cineedge HD', 'https://nomawnoijl.gpcdn.net/akash/cineedge/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">CE</div>
+                        <span>Cineedge HD</span>
+                    </button>
+                    <button onclick="playStream('Uniques HD', 'https://nomawnoijl.gpcdn.net/akash/uniques/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">UN</div>
+                        <span>Uniques HD</span>
+                    </button>
+                    <button onclick="playStream('Superrix HD', 'https://nomawnoijl.gpcdn.net/akash/superrix/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SR</div>
+                        <span>Superrix HD</span>
+                    </button>
+                    <button onclick="playStream('Screem', 'https://nomawnoijl.gpcdn.net/akash/screem/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SC</div>
+                        <span>Screem</span>
+                    </button>
+                    <button onclick="playStream('Crimes', 'https://nomawnoijl.gpcdn.net/akash/crimes/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">CR</div>
+                        <span>Crimes</span>
+                    </button>
+                    <button onclick="playStream('True Stories', 'https://nomawnoijl.gpcdn.net/akash/truestories/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">TS</div>
+                        <span>True Stories</span>
+                    </button>
+                    <button onclick="playStream('Intelligence', 'https://nomawnoijl.gpcdn.net/akash/intelligence/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">IN</div>
+                        <span>Intelligence</span>
+                    </button>
+                    <button onclick="playStream('SONY MAX HD VIP', 'https://server.itcnbd.live/stream/sony_max_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SM</div>
+                        <span>SONY MAX HD VIP</span>
+                    </button>
+                    <button onclick="playStream('Zee Bangla Cinema', 'https://server.itcnbd.live/stream/zee_bangla_cinema.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ZC</div>
+                        <span>Zee Bangla Cinema</span>
+                    </button>
+                    <button onclick="playStream('Zee Bollywood', 'https://server.itcnbd.live/stream/zee_bollywood.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ZB</div>
+                        <span>Zee Bollywood</span>
+                    </button>
+                    <button onclick="playStream('Zee Action', 'https://server.itcnbd.live/stream/zee_action.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ZA</div>
+                        <span>Zee Action</span>
+                    </button>
+                    <button onclick="playStream('SONY MAX VIP', 'https://server.itcnbd.live/stream/sony_max.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SM</div>
+                        <span>SONY MAX VIP</span>
+                    </button>
+                    <button onclick="playStream('SONY PIX HD VIP', 'https://server.itcnbd.live/stream/sonypix_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SP</div>
+                        <span>SONY PIX HD VIP</span>
+                    </button>
+                    <button onclick="playStream('Zee Cafe', 'https://server.itcnbd.live/stream/zee_cafe_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ZC</div>
+                        <span>Zee Cafe</span>
+                    </button>
+                    <button onclick="playStream('B4U Movies VIP', 'https://server.itcnbd.live/stream/b4u_movies.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">B4</div>
+                        <span>B4U Movies VIP</span>
+                    </button>
+                    <button onclick="playStream('SONY MAX 2 VIP', 'https://server.itcnbd.live/stream/sonymax_2.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SM</div>
+                        <span>SONY MAX 2 VIP</span>
+                    </button>
+                    <button onclick="playStream('Zee Bangla Cinema VIP', 'https://server.itcnbd.live/stream/zee_bangla_cinema.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ZB</div>
+                        <span>Zee Bangla Cinema VIP</span>
+                    </button>
+                    <button onclick="playStream('Zee Cinema HD', 'https://server.itcnbd.live/stream/zee_cinema_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ZC</div>
+                        <span>Zee Cinema HD</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sports -->
+            <div class="bg-gray-800 p-5 rounded-xl category-card">
+                <h3 class="text-green-400 font-bold text-lg mb-4 flex items-center">
+                    <span class="mr-2">⚽</span> Sports
+                </h3>
+                <div class="space-y-2 category-content pr-2">
+                    <button onclick="playStream('Euro Sport HD', 'https://server.itcnbd.live/stream/euro_sports_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ES</div>
+                        <span>Euro Sport HD</span>
+                    </button>
+                    <button onclick="playStream('Crazy Ex', 'https://nomawnoijl.gpcdn.net/akash/crazy_ex/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">CE</div>
+                        <span>Crazy Ex</span>
+                    </button>
+                    <button onclick="playStream('Sports Legends', 'https://nomawnoijl.gpcdn.net/akash/sportslegends/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SL</div>
+                        <span>Sports Legends</span>
+                    </button>
+                    <button onclick="playStream('Flash Guys HD', 'https://nomawnoijl.gpcdn.net/akash/flashguys/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">FG</div>
+                        <span>Flash Guys HD</span>
+                    </button>
+                    <button onclick="playStream('Sports Range', 'https://nomawnoijl.gpcdn.net/akash/sportrange/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SR</div>
+                        <span>Sports Range</span>
+                    </button>
+                    <button onclick="playStream('Thunder Er', 'https://nomawnoijl.gpcdn.net/akash/thunder/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">TE</div>
+                        <span>Thunder Er</span>
+                    </button>
+                    <button onclick="playStream('Fighters', 'https://nomawnoijl.gpcdn.net/akash/fighter/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">FI</div>
+                        <span>Fighters</span>
+                    </button>
+                    <button onclick="playStream('TOFFEE Sports VIP', 'https://server.itcnbd.live/stream/sports_highlights.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">TS</div>
+                        <span>TOFFEE Sports VIP</span>
+                    </button>
+                    <button onclick="playStream('TOFFEE Movies VIP', 'https://server.itcnbd.live/stream/toffee_movie.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">TM</div>
+                        <span>TOFFEE Movies VIP</span>
+                    </button>
+                    <button onclick="playStream('TOFFEE Dramas VIP', 'https://server.itcnbd.live/stream/toffee_drama.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">TD</div>
+                        <span>TOFFEE Dramas VIP</span>
+                    </button>
+                    <button onclick="playStream('BD vs PK', 'https://server.itcnbd.live/stream/bdvsnz26.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">BP</div>
+                        <span>BD vs PK</span>
+                    </button>
+                    <button onclick="playStream('ICC Test Championship Highlights', 'https://server.itcnbd.live/stream/icc_wtc_final.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">IC</div>
+                        <span>ICC Test Championship Highlights</span>
+                    </button>
+                    <button onclick="playStream('SONY SPORTS TEN 1 HD', 'https://server.itcnbd.live/stream/sony_sports_1_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>SONY SPORTS TEN 1 HD</span>
+                    </button>
+                    <button onclick="playStream('SONY SPORTS TEN 2 HD', 'https://server.itcnbd.live/stream/sony_sports_2_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>SONY SPORTS TEN 2 HD</span>
+                    </button>
+                    <button onclick="playStream('SONY SPORTS TEN 5 HD', 'https://server.itcnbd.live/stream/sony_sports_5_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>SONY SPORTS TEN 5 HD</span>
+                    </button>
+                    <button onclick="playStream('SONY TEN Cricket', 'https://server.itcnbd.live/stream/ten_cricket.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ST</div>
+                        <span>SONY TEN Cricket</span>
+                    </button>
+                    <button onclick="playStream('EPL channel 1', 'https://server.itcnbd.live/stream/match-1.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">E1</div>
+                        <span>EPL channel 1</span>
+                    </button>
+                    <button onclick="playStream('EPL channel 2', 'https://server.itcnbd.live/stream/match-2.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">E2</div>
+                        <span>EPL channel 2</span>
+                    </button>
+                    <button onclick="playStream('EPL channel 3', 'https://server.itcnbd.live/stream/match-3.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">E3</div>
+                        <span>EPL channel 3</span>
+                    </button>
+                    <button onclick="playStream('EPL channel 4', 'https://server.itcnbd.live/stream/match-4.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">E4</div>
+                        <span>EPL channel 4</span>
+                    </button>
+                    <button onclick="playStream('EPL channel 5', 'https://server.itcnbd.live/stream/match-5.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">E5</div>
+                        <span>EPL channel 5</span>
+                    </button>
+                    <button onclick="playStream('EPL channel 6', 'https://server.itcnbd.live/stream/match-6.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">E6</div>
+                        <span>EPL channel 6</span>
+                    </button>
+                    <button onclick="playStream('BFL Live 1', 'https://server.itcnbd.live/stream/match-11.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">B1</div>
+                        <span>BFL Live 1</span>
+                    </button>
+                    <button onclick="playStream('BFL Live 2', 'https://server.itcnbd.live/stream/match-12.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">B2</div>
+                        <span>BFL Live 2</span>
+                    </button>
+                    <button onclick="playStream('BFL Live 3', 'https://server.itcnbd.live/stream/match-13.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">B3</div>
+                        <span>BFL Live 3</span>
+                    </button>
+                    <button onclick="playStream('BFL Live 4', 'https://server.itcnbd.live/stream/match-18.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">B4</div>
+                        <span>BFL Live 4</span>
+                    </button>
+                    <button onclick="playStream('A SPORTS HD', 'https://s2.itcnbd.live/a-sports-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">AS</div>
+                        <span>A SPORTS HD</span>
+                    </button>
+                    <button onclick="playStream('EUROSPORTS HD', 'https://s2.itcnbd.live/eurosports-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ES</div>
+                        <span>EUROSPORTS HD</span>
+                    </button>
+                    <button onclick="playStream('FAST SPORTS HD', 'https://s2.itcnbd.live/fast-sports-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">FS</div>
+                        <span>FAST SPORTS HD</span>
+                    </button>
+                    <button onclick="playStream('GOLF SPORTS', 'https://s2.itcnbd.live/golf-sports/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">GS</div>
+                        <span>GOLF SPORTS</span>
+                    </button>
+                    <button onclick="playStream('PTV SPORTS HD', 'https://s2.itcnbd.live/ptv-sports-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">PS</div>
+                        <span>PTV SPORTS HD</span>
+                    </button>
+                    <button onclick="playStream('SONY SPORTS 1 HD', 'https://s2.itcnbd.live/sony-sports-1-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>SONY SPORTS 1 HD</span>
+                    </button>
+                    <button onclick="playStream('SONY SPORTS 2 HD', 'https://s2.itcnbd.live/sony-sports-2-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>SONY SPORTS 2 HD</span>
+                    </button>
+                    <button onclick="playStream('SONY SPORTS 3', 'https://s2.itcnbd.live/sony-sports-3/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>SONY SPORTS 3</span>
+                    </button>
+                    <button onclick="playStream('SONY SPORTS 4', 'https://s2.itcnbd.live/sony-sports-4/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>SONY SPORTS 4</span>
+                    </button>
+                    <button onclick="playStream('SONY SPORTS 5 HD', 'https://s2.itcnbd.live/sony-sports-5-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>SONY SPORTS 5 HD</span>
+                    </button>
+                    <button onclick="playStream('SSC SPORTS', 'https://s2.itcnbd.live/ssc-sports/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>SSC SPORTS</span>
+                    </button>
+                    <button onclick="playStream('SSC SPORTS 5 HD', 'https://s2.itcnbd.live/ssc-sports-5-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>SSC SPORTS 5 HD</span>
+                    </button>
+                    <button onclick="playStream('STAR SELECT 1 HD', 'https://s2.itcnbd.live/star-select-1-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>STAR SELECT 1 HD</span>
+                    </button>
+                    <button onclick="playStream('STAR SPORTS 1 HD', 'https://s2.itcnbd.live/star-sports-1-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>STAR SPORTS 1 HD</span>
+                    </button>
+                    <button onclick="playStream('STAR SPORTS 2 HD', 'https://s2.itcnbd.live/star-sports-2-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>STAR SPORTS 2 HD</span>
+                    </button>
+                    <button onclick="playStream('STAR SPORTS 3', 'https://s2.itcnbd.live/star-sports-3/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>STAR SPORTS 3</span>
+                    </button>
+                    <button onclick="playStream('STAR SPORTS SELECT 2 HD', 'https://s2.itcnbd.live/star-sports-select-2-hd/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">SS</div>
+                        <span>STAR SPORTS SELECT 2 HD</span>
+                    </button>
+                    <button onclick="playStream('T SPORTS', 'https://s2.itcnbd.live/t-sports/index.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">TS</div>
+                        <span>T SPORTS</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Music Category -->
+            <div class="bg-gray-800 p-5 rounded-xl category-card">
+                <h3 class="text-pink-400 font-bold text-lg mb-4 flex items-center">
+                    <span class="mr-2">🎵</span> Music
+                </h3>
+                <div class="space-y-2 category-content pr-2">
+                    <button onclick="playStream('Party Universe', 'https://nomawnoijl.gpcdn.net/akash/partyuniverse/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">PU</div>
+                        <span>Party Universe</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Infotainment Category -->
+            <div class="bg-gray-800 p-5 rounded-xl category-card">
+                <h3 class="text-amber-400 font-bold text-lg mb-4 flex items-center">
+                    <span class="mr-2">🧠</span> Infotainment
+                </h3>
+                <div class="space-y-2 category-content pr-2">
+                    <button onclick="playStream('Delicious', 'https://nomawnoijl.gpcdn.net/akash/delicious/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">DE</div>
+                        <span>Delicious</span>
+                    </button>
+                    <button onclick="playStream('Luxel HD', 'https://nomawnoijl.gpcdn.net/akash/luxel/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">[cite: 1]
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">LH</div>
+                        <span>Luxel HD</span>[cite: 1]
+                    </button>
+                    <button onclick="playStream('Animal Kingdom', 'https://nomawnoijl.gpcdn.net/akash/animalkingdom/playlist.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">[cite: 1]
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">AK</div>
+                        <span>Animal Kingdom</span>[cite: 1]
+                    </button>
+                    <button onclick="playStream('Discovery Kids VIP', 'https://server.itcnbd.live/stream/discovery_kids.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">[cite: 1]
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">DK</div>
+                        <span>Discovery Kids VIP</span>[cite: 1]
+                    </button>
+                    <button onclick="playStream('Discovery Science VIP', 'https://server.itcnbd.live/stream/discovery_science.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">[cite: 1]
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">DS</div>
+                        <span>Discovery Science VIP</span>[cite: 1]
+                    </button>
+                    <button onclick="playStream('Discovery Turbo VIP', 'https://server.itcnbd.live/stream/discovery_turbo.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">[cite: 1]
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">DT</div>
+                        <span>Discovery Turbo VIP</span>[cite: 1]
+                    </button>
+                    <button onclick="playStream('Investigation Discovery HD VIP', 'https://server.itcnbd.live/stream/investigation_discovery_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">[cite: 1]
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ID</div>
+                        <span>Investigation Discovery HD VIP</span>[cite: 1]
+                    </button>
+                    <button onclick="playStream('Animal Planet HD VIP', 'https://server.itcnbd.live/stream/animal_planet_hd.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">[cite: 1]
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">AP</div>
+                        <span>Animal Planet HD VIP</span>[cite: 1]
+                    </button>
+                </div>
+            </div>
+
+            <!-- Religious Category -->
+            <div class="bg-gray-800 p-5 rounded-xl category-card">
+                <h3 class="text-emerald-400 font-bold text-lg mb-4 flex items-center">
+                    <span class="mr-2">🕌</span> Religious
+                </h3>
+                <div class="space-y-2 category-content pr-2">
+                    <button onclick="playStream('Makkah Live HD', 'https://server.itcnbd.live/stream/makkah_live.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">[cite: 1]
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ML</div>
+                        <span>Makkah Live HD</span>[cite: 1]
+                    </button>
+                    <button onclick="playStream('Madinah Live HD', 'https://server.itcnbd.live/stream/madina_live.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">[cite: 1]
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">ML</div>
+                        <span>Madinah Live HD</span>[cite: 1]
+                    </button>
+                    <button onclick="playStream('Peace TV Bangla', 'https://server.itcnbd.live/stream/peacetv_bangla.m3u8')" class="w-full text-left flex items-center p-3 rounded-lg hover:bg-gray-700 transition">[cite: 1]
+                        <div class="w-10 h-10 bg-white rounded-md flex items-center justify-center font-bold text-black mr-3">PT</div>
+                        <span>Peace TV Bangla</span>[cite: 1]
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 border-t border-gray-800 py-8 mt-12">
+        <div class="container mx-auto text-center">
+            <p class="text-gray-500 text-sm">© 2026 BD Live TV. All rights reserved.</p>
+            <p class="text-blue-400 font-semibold mt-1">Developed by Safwan Sabit</p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialization
+        const player = videojs('live-player');
+
+        // Donation Modal Logic
+        function closeDonation() {
+            document.getElementById('donation-modal').classList.add('hidden');
+        }
+
+        // Copy Feature with Fallback
+        function copyNumber() {
+            const num = document.getElementById('bkash-num').innerText;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(num).then(() => {
+                    alert("Number copied: " + num);
+                }).catch(() => {
+                    fallbackCopy(num);
+                });
+            } else {
+                fallbackCopy(num);
+            }
+        }
+        function fallbackCopy(text) {
+            const tempInput = document.createElement("input");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            alert("Number copied: " + text);
+        }
+
+        // Stream Logic
+        function playStream(name, url) {
+            document.getElementById('player-section').classList.remove('hidden');
+            document.getElementById('current-channel-name').innerText = name;
+            player.src({ type: 'application/x-mpegURL', src: url });
+            player.play();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function closePlayer() {
+            player.pause();
+            document.getElementById('player-section').classList.add('hidden');
+        }
+
+        // Anti-Source Code View (Basic Protection)
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false; // F12
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; // Ctrl+Shift+I
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false; // Ctrl+Shift+C
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false; // Ctrl+Shift+J
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // Ctrl+U
+        };
+
+        // Simple Search Filter
+        document.getElementById('search-bar').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const buttons = document.querySelectorAll('.category-content button');
+            buttons.forEach(btn => {
+                const text = btn.innerText.toLowerCase();
+                btn.style.display = text.includes(term) ? 'flex' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>
