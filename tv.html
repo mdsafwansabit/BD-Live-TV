@@ -1,3 +1,18 @@
+<?php
+session_start();
+
+/* ---------- SECURITY CHECK ---------- */
+if(!isset($_SESSION['user'])){
+    header("Location: index.php");
+    exit();
+}
+
+/* ---------- OPTIONAL: LOG OUT ON REFRESH ---------- */
+/* (your requirement: every time login needed) */
+$user = $_SESSION['user'];
+session_destroy();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
